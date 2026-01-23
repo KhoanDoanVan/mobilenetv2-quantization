@@ -67,3 +67,44 @@ class ModelPreparation:
         fused_conv.bias.data = fused_bias
 
         return fused_conv
+    
+
+
+    @staticmethod
+    def fuse_model(model):
+        """
+        Fuse entire Conv+BN pairs in model
+        """
+
+        fused_model = deepcopy(model)
+
+        modules = list(fused_model.named_children())
+
+        for name, module in modules:
+            if isinstance(module, nn.Sequential):
+                fused_layers = []
+                i = 0
+                layers = list(module.children())
+
+                while i < len(layers):
+                    # Check if Conv + BN pattern
+                    if i < len(layers) - 1:
+                        if isinstance(layers[i], nn.Conv2d) and isinstance(layers[i + 1], nn.BatchNorm2d):
+                            # Fuse Conv + BN
+                            fused_conv = ModelPreparation.fuse_conv_bn(
+                                layers[i],
+                                layers[i + 1]
+                            )
+                            fused_layers.append(fused_conv)
+                            i += 2
+                            continue
+
+                    # don't fuse, will remain layer
+                    fused_layers.append(layers[i])
+                    i += 1
+
+                # Replace module with fused version
+                setattr(fused_model, name, nn.Sequential(*fused_layers))
+
+        
+        return fused_model
