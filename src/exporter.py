@@ -32,7 +32,8 @@ class QuantizedModelExporter:
     @staticmethod
     def export_to_torchscript(model, example_input, save_path):
         """
-        Export to TorchScript format
+        This function converts a QAT (fake-quantized) model into a real INT8 model 
+        and exports it as a static, deployable TorchScript artifact.
         """
 
         model = QuantizedModelExporter.convert_fake_quant_to_int8(model)
